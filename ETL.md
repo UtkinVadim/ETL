@@ -1,12 +1,16 @@
-1. Установить зависимости:
+1. Установить зависимости и подготовить .env:
 ```console
-pip install -r requirements.txt
-``` 
-2. Запустить контейнер с elasticsearch:
-```console
-make run_run_es
+make init
 ```
-3. Создать схему индекса:
+
+2. В файле .env настроить переменные под необходимую базу данных.
+
+3. Запустить контейнер с elasticsearch, если он не запущен:
+```console
+make run_es
+```
+
+3. Импортировать данные из Postgres в Elasticsearch:
 ```console
 make create_index_schema
 ```
