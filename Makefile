@@ -1,8 +1,6 @@
 init:
 	cp .env.tamplate .env
 	python3 -m venv venv
-	source venv/bin/activate
-	pip install -r requirements.txt
 
 run_es:
 	docker run -p 9200:9200 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.7.0
