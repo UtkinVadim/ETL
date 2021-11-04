@@ -1,10 +1,14 @@
+import json
 import os
+from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
 from psycopg2 import connect
 from psycopg2.extras import DictCursor
 
 load_dotenv(find_dotenv(raise_error_if_not_found=False))
+
+FILE_PATH = Path(__file__).resolve().parent
 
 
 class PostgresLoader:
@@ -17,22 +21,34 @@ class PostgresLoader:
         "options": "-c search_path=content",
     }
 
-    def __init__(self, limit: int = 250, offset: int = 0):
+    def __init__(self, limit: int = 250):
         self.cursor = None
-        self.rows_count = None
+        self.rows_left = None
         self.limit = limit
-        self.offset = offset
+
+    @property
+    def rows_count(self) -> int:
+        self.cursor.execute("""SELECT count(*) FROM "content".filmwork""")
+        return self.cursor.fetchone()[0]
+
+    @property
+    def last_row_number(self) -> int:
+        with open(FILE_PATH / "last_row_number.json", "r") as cur_state:
+            current_state = json.loads(cur_state.read())
+            return current_state["last_row_number"]
+
+    @last_row_number.setter
+    def last_row_number(self, last_row_number: int) -> None:
+        with open(FILE_PATH / "last_row_number.json", "w") as cur_state:
+            current_state = json.dumps({"last_row_number": last_row_number})
+            cur_state.write(current_state)
 
     def extract_data(self) -> list:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
-            self._set_rows_count()
-            while self.rows_count > 0:
+            self.rows_left = self.rows_count
+            while self.rows_left > 0:
                 yield self._get_film_works()
-
-    def _set_rows_count(self):
-        self.cursor.execute("""SELECT count(*) FROM "content".filmwork""")
-        self.rows_count = self.cursor.fetchone()[0]
 
     def _get_film_works(self) -> list:
         self.cursor.execute(
@@ -73,11 +89,12 @@ class PostgresLoader:
             LEFT OUTER JOIN cte_persons cpa ON cpa.filmwork_id = fw.id AND cpa.role = 'actor'
             LEFT OUTER JOIN cte_persons cpd ON cpd.filmwork_id = fw.id AND cpd.role = 'director'
             LEFT OUTER JOIN cte_persons cpw ON cpw.filmwork_id = fw.id AND cpw.role = 'writer'
+            ORDER BY fw.id
 
             LIMIT %s OFFSET %s;
             """
-            % (self.limit, self.offset)
+            % (self.limit, self.last_row_number)
         )
-        self.offset += self.limit
-        self.rows_count -= self.limit
+        self.last_row_number += self.limit
+        self.rows_left -= self.limit
         return self.cursor.fetchall()
