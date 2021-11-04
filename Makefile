@@ -1,5 +1,7 @@
 init:
 	cp .env.tamplate .env
+	python3 -m venv venv
+	source venv/bin/activate
 	pip install -r requirements.txt
 
 run_es:

@@ -12,5 +12,5 @@ make run_es
 
 3. Импортировать данные из Postgres в Elasticsearch:
 ```console
-make create_index_schema
+make init
 ```
