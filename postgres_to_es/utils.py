@@ -4,7 +4,9 @@ from functools import wraps
 
 from dotenv import find_dotenv, load_dotenv
 
-load_dotenv(find_dotenv(raise_error_if_not_found=False))
+
+def load_env():
+    load_dotenv(find_dotenv(raise_error_if_not_found=False))
 
 
 def get_logger(name: str) -> logging.Logger:

@@ -1,12 +1,16 @@
 import os
+import datetime
 from pathlib import Path
 
 from psycopg2 import connect
 from psycopg2.extras import DictCursor
 
 from postgres_to_es.postgres.state import JsonFileStorage, State
+from postgres_to_es.utils import load_env
 
 FILE_PATH = Path(__file__).resolve().parent
+
+load_env()
 
 
 class PostgresLoader:
@@ -20,29 +24,38 @@ class PostgresLoader:
     }
 
     def __init__(self, limit: int = 250):
+        self.limit = limit
+
         self.cursor = None
         self.rows_left = None
-        self.limit = limit
 
         self.storage = JsonFileStorage(file_path=str(FILE_PATH / "state.json"))
         self.state = State(self.storage)
 
     @property
+    def film_work_updated_at_date(self) -> datetime:
+        try:
+            self.state.get_state(key="updated_at")
+        except FileNotFoundError:
+            self.state.set_state(key="updated_at", value=str(self.start_date()))
+        return self.state.get_state(key="updated_at")
+
+    @property
     def rows_count(self) -> int:
-        self.cursor.execute("""SELECT count(*) FROM "content".filmwork""")
+        self.cursor.execute(
+            """SELECT count(*)
+               FROM "content".filmwork
+               WHERE updated_at > '%s'""" % self.film_work_updated_at_date
+        )
         return self.cursor.fetchone()[0]
 
     def extract_data(self) -> list:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
-            self.state.set_state(key="last_row_number", value=0)
-            self.rows_left = self.rows_count
-            while self.rows_left > 0:
+            while self.rows_count > 0:
                 yield self.get_film_works()
 
     def get_film_works(self) -> list:
-        last_row_number = self.state.get_state(key="last_row_number")
-
         self.cursor.execute(
             """
             WITH
@@ -81,12 +94,27 @@ class PostgresLoader:
             LEFT OUTER JOIN cte_persons cpa ON cpa.filmwork_id = fw.id AND cpa.role = 'actor'
             LEFT OUTER JOIN cte_persons cpd ON cpd.filmwork_id = fw.id AND cpd.role = 'director'
             LEFT OUTER JOIN cte_persons cpw ON cpw.filmwork_id = fw.id AND cpw.role = 'writer'
-            ORDER BY fw.id
+            
+            WHERE updated_at > '%s'
+            
+            ORDER BY fw.updated_at
 
-            LIMIT %s OFFSET %s;
+            LIMIT %s;
             """
-            % (self.limit, last_row_number if last_row_number else 0)
+            % (self.film_work_updated_at_date, self.limit)
         )
-        self.state.set_state(key="last_row_number", value=last_row_number + self.limit)
-        self.rows_left -= self.limit
         return self.cursor.fetchall()
+
+    def update_state(self, film_work_id: str):
+        self.cursor.execute(
+            """SELECT updated_at
+               FROM "content".filmwork
+               WHERE id = '%s'""" % film_work_id
+        )
+        updated_at_date = self.cursor.fetchone()[0]
+        self.state.set_state(key="updated_at", value=str(updated_at_date))
+
+    def start_date(self):
+        self.cursor.execute("""SELECT fw.updated_at FROM content.filmwork as fw ORDER BY fw.updated_at limit 1""")
+        oldest_row = self.cursor.fetchone()[0] - datetime.timedelta(microseconds=1)
+        return oldest_row - datetime.timedelta(microseconds=1)

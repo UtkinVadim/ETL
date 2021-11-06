@@ -43,7 +43,6 @@ class PgToEsLoader:
         for postgres_film_works_data in pg_data_generator:
             data_for_load = self.transform(postgres_film_works_data)
             self.load(data_for_load)
-        self.pg_loader.state.set_state(key="last_row_number", value=0)
 
     def extract(self):
         pg_data_generator = self.pg_loader.extract_data()
@@ -114,3 +113,4 @@ class PgToEsLoader:
     @backoff(start_sleep_time=1, factor=2, border_sleep_time=10)
     def load(self, film_works_for_load: list) -> None:
         helpers.bulk(self.elasticsearch_client, film_works_for_load)
+        self.pg_loader.update_state(film_work_id=film_works_for_load[-1].get("_id"))
