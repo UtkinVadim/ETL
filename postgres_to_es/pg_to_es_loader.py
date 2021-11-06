@@ -1,11 +1,12 @@
+import os
 from typing import List, Union
 
 from elasticsearch import Elasticsearch, helpers
 from psycopg2.extras import DictRow
 from pydantic import BaseModel
 
-from .backoff import backoff
-from .postgres_loader import PostgresLoader
+from postgres_to_es.postgres.postgres_loader import PostgresLoader
+from postgres_to_es.utils import backoff, get_logger
 
 
 class Persons(BaseModel):
@@ -28,7 +29,7 @@ class FilmWork(BaseModel):
 
 class PgToEsLoader:
     def __init__(self, postgres_load_limit: int = 250):
-        self.elasticsearch_client = Elasticsearch(hosts="0.0.0.0:9200")
+        self.elasticsearch_client = Elasticsearch(hosts=os.environ.get("ES_HOST"))
         self.index = "movies"
 
         self.pg_loader = PostgresLoader(limit=postgres_load_limit)
@@ -38,42 +39,48 @@ class PgToEsLoader:
 
     @backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10)
     def start_process(self) -> None:
-        pg_data_generator = self._extract()
+        pg_data_generator = self.extract()
         for postgres_film_works_data in pg_data_generator:
-            data_for_load = self._transform(postgres_film_works_data)
-            self._load(data_for_load)
-        self.pg_loader.last_row_number = 0
+            data_for_load = self.transform(postgres_film_works_data)
+            self.load(data_for_load)
+        self.pg_loader.state.set_state(key="last_row_number", value=0)
 
-    def _extract(self):
+    def extract(self):
         pg_data_generator = self.pg_loader.extract_data()
         return pg_data_generator
 
-    def _transform(self, postgres_film_works_data: List[DictRow]) -> List[dict]:
+    def transform(self, postgres_film_works_data: List[DictRow]) -> List[dict]:
         transformed_film_works_data = []
 
         for pg_film_work_data in postgres_film_works_data:
             self.film_work_data_for_transform = {**pg_film_work_data}
 
-            self.film_work_data_for_transform.update({"genre": self._get_genre()})
+            self.film_work_data_for_transform.update({"genre": self.get_genre()})
 
-            persons_for_update = self._get_persons_for_update()
+            persons_for_update = self.get_persons_for_update()
             for person_role in persons_for_update:
                 self.film_work_data_for_transform.update(
-                    {**self._get_persons_info(person_role)}
+                    {**self.get_persons_info(person_role)}
                 )
 
-            validated_film_work_data = FilmWork(**self.film_work_data_for_transform)
+            validated_film_work_data = self.validate_film_work_data()
 
-            data_for_load = self._transform_data(film_work=validated_film_work_data)
+            data_for_load = self.transform_data(film_work=validated_film_work_data)
 
             transformed_film_works_data.append(data_for_load)
 
         return transformed_film_works_data
 
-    def _get_genre(self) -> list:
+    def validate_film_work_data(self) -> FilmWork:
+        try:
+            return FilmWork(**self.film_work_data_for_transform)
+        except Exception as err:
+            get_logger(__name__).warning(f"Film work validation error: {err}")
+
+    def get_genre(self) -> list:
         return self.film_work_data_for_transform["genre"].split("|")
 
-    def _get_persons_for_update(self) -> List[str]:
+    def get_persons_for_update(self) -> List[str]:
         persons_for_update = []
 
         actors_in_pg_data = self.film_work_data_for_transform.get("actors", False)
@@ -86,7 +93,7 @@ class PgToEsLoader:
 
         return persons_for_update
 
-    def _get_persons_info(self, persons_role: str) -> dict:
+    def get_persons_info(self, persons_role: str) -> dict:
         persons_data = []
 
         person_names = self.film_work_data_for_transform[f"{persons_role}_names"].split(
@@ -100,10 +107,10 @@ class PgToEsLoader:
 
         return {f"{persons_role}_names": person_names, f"{persons_role}": persons_data}
 
-    def _transform_data(self, film_work: FilmWork) -> dict:
+    def transform_data(self, film_work: FilmWork) -> dict:
         data_for_load = {"_index": self.index, "_id": film_work.id, **film_work.dict()}
         return data_for_load
 
     @backoff(start_sleep_time=1, factor=2, border_sleep_time=10)
-    def _load(self, film_works_for_load: list) -> None:
+    def load(self, film_works_for_load: list) -> None:
         helpers.bulk(self.elasticsearch_client, film_works_for_load)

@@ -1,12 +1,10 @@
-import json
 import os
 from pathlib import Path
 
-from dotenv import find_dotenv, load_dotenv
 from psycopg2 import connect
 from psycopg2.extras import DictCursor
 
-load_dotenv(find_dotenv(raise_error_if_not_found=False))
+from postgres_to_es.postgres.state import JsonFileStorage, State
 
 FILE_PATH = Path(__file__).resolve().parent
 
@@ -26,31 +24,25 @@ class PostgresLoader:
         self.rows_left = None
         self.limit = limit
 
+        self.storage = JsonFileStorage(file_path=str(FILE_PATH / "state.json"))
+        self.state = State(self.storage)
+
     @property
     def rows_count(self) -> int:
         self.cursor.execute("""SELECT count(*) FROM "content".filmwork""")
         return self.cursor.fetchone()[0]
 
-    @property
-    def last_row_number(self) -> int:
-        with open(FILE_PATH / "last_row_number.json", "r") as cur_state:
-            current_state = json.loads(cur_state.read())
-            return current_state["last_row_number"]
-
-    @last_row_number.setter
-    def last_row_number(self, last_row_number: int) -> None:
-        with open(FILE_PATH / "last_row_number.json", "w") as cur_state:
-            current_state = json.dumps({"last_row_number": last_row_number})
-            cur_state.write(current_state)
-
     def extract_data(self) -> list:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
+            self.state.set_state(key="last_row_number", value=0)
             self.rows_left = self.rows_count
             while self.rows_left > 0:
-                yield self._get_film_works()
+                yield self.get_film_works()
 
-    def _get_film_works(self) -> list:
+    def get_film_works(self) -> list:
+        last_row_number = self.state.get_state(key="last_row_number")
+
         self.cursor.execute(
             """
             WITH
@@ -93,8 +85,8 @@ class PostgresLoader:
 
             LIMIT %s OFFSET %s;
             """
-            % (self.limit, self.last_row_number)
+            % (self.limit, last_row_number if last_row_number else 0)
         )
-        self.last_row_number += self.limit
+        self.state.set_state(key="last_row_number", value=last_row_number + self.limit)
         self.rows_left -= self.limit
         return self.cursor.fetchall()
