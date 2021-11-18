@@ -1,5 +1,5 @@
 init:
-	cp .env.tamplate .env
+	cp .env.template .env
 	python3 -m venv venv
 
 run_es:
