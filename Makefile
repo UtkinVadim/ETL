@@ -10,7 +10,7 @@ import:
 	make run_etl_process
 
 create_index_schema:
-	sh postgres_to_es/scripts/create_index_schema.sh
+	sh postgres_to_es/scripts/create_movies_index.sh
 
 run_etl_process:
 	python -m postgres_to_es.scripts.run_etl_process
