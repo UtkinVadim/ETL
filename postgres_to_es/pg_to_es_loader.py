@@ -1,9 +1,9 @@
 import os
-from typing import List, Union
-
 from elasticsearch import Elasticsearch, helpers
 from psycopg2.extras import DictRow
 from pydantic import BaseModel
+from typing import List, Union, Optional
+from uuid import UUID
 
 from postgres_to_es.postgres.postgres_loader import PostgresLoader
 from postgres_to_es.utils import backoff, get_logger
@@ -25,6 +25,19 @@ class FilmWork(BaseModel):
     writers_names: Union[List[str], None]
     actors: Union[List[Persons], None]
     writers: Union[List[Persons], None]
+
+
+class Film(BaseModel):
+    id: Union[str, UUID]
+    title: str
+    imdb_rating: float
+
+
+class PersonWithFilms(BaseModel):
+    id: Union[str, UUID]
+    fullname: str
+    role: str
+    film_ids: Optional[List[Film]]
 
 
 class PgToEsLoader:
