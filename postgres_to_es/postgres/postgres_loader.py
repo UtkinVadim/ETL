@@ -31,21 +31,17 @@ class PostgresLoader:
         self.storage = JsonFileStorage(file_path=str(FILE_PATH / "state.json"))
         self.state = State(self.storage)
 
-    def get_state_by(self, key: str) -> datetime:
+    def get_state_by(self, key: str, start_date: str = '1900-01-01') -> str:
         """
         Возвращает сохранённое значение по ключу key
 
         :param key:
+        :param start_date:
         :return:
         """
         state = self.state.get_state(key=key)
         if state is None:
-            # FIXME это временная заглушка, переписать!
-            if 'film' in key:
-                data_type = 'filmwork'
-            elif 'person' in key:
-                data_type = 'person'
-            return str(self.start_date(data_type))
+            return start_date
         return state
 
     def rows_count(self, table_name: str, updated_at: str) -> int:
@@ -71,8 +67,12 @@ class PostgresLoader:
             elif data_type == 'person':
                 query_str = person_query
             state_key_name = generate_state_name(data_type)
-            while self.rows_count(table_name=data_type, updated_at=self.get_state_by(key=state_key_name)) > 0:
-                query = self.generate_query(query_str, self.get_state_by(key=state_key_name), self.limit)
+            while self.rows_count(table_name=data_type, updated_at=self.get_state_by(key=state_key_name,
+                                                                                     start_date=self.start_date(
+                                                                                         data_type))) > 0:
+                query = self.generate_query(query_str, self.get_state_by(key=state_key_name,
+                                                                         start_date=self.start_date(data_type)),
+                                            self.limit)
                 yield self.get_data_from_db(query)
 
     def generate_query(self, query: str, state: datetime, limit: int) -> str:
@@ -113,7 +113,7 @@ class PostgresLoader:
         updated_at_date = self.cursor.fetchone()[0]
         self.state.set_state(key=key, value=str(updated_at_date))
 
-    def start_date(self, data_type: str) -> datetime:
+    def start_date(self, data_type: str) -> str:
         self.cursor.execute(f"""SELECT fw.updated_at FROM content.{data_type} as fw ORDER BY fw.updated_at limit 1""")
         oldest_row = self.cursor.fetchone()[0] - datetime.timedelta(microseconds=1)
-        return oldest_row - datetime.timedelta(microseconds=1)
+        return str(oldest_row - datetime.timedelta(microseconds=1))
