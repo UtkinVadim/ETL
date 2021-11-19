@@ -26,7 +26,6 @@ class PostgresLoader:
         self.limit = limit
 
         self.cursor = None
-        self.rows_left = None
 
         self.storage = JsonFileStorage(file_path=str(FILE_PATH / "state.json"))
         self.state = State(self.storage)
