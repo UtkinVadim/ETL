@@ -53,8 +53,7 @@ curl -XPUT http://127.0.0.1:9200/person -H 'Content-Type: application/json' -d'
         "analyzer": "ru_en"
       },
       "role": {
-        "type": "keyword",
-        "analyzer": "ru_en"
+        "type": "keyword"
       },
       "film_ids": {
         "type": "nested",
