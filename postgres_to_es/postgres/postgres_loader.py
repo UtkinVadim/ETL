@@ -67,12 +67,12 @@ class PostgresLoader:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
             if data_type == 'filmwork':
-                while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
-                    query = self.generate_query(film_query, self.get_state_by(key='film_updated_at'), self.limit)
+                while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='filmwork_updated_at')) > 0:
+                    query = self.generate_query(film_query, self.get_state_by(key='filmwork_updated_at'), self.limit)
                     yield self.get_data_from_db(query)
             elif data_type == 'person':
-                while self.rows_count(table_name='person', updated_at=self.get_state_by(key='persons_updated_at')) > 0:
-                    query = self.generate_query(person_query, self.get_state_by(key='persons_updated_at'), self.limit)
+                while self.rows_count(table_name='person', updated_at=self.get_state_by(key='person_updated_at')) > 0:
+                    query = self.generate_query(person_query, self.get_state_by(key='person_updated_at'), self.limit)
                     yield self.get_data_from_db(query)
 
     def generate_query(self, query: str, state: datetime, limit: int) -> str:

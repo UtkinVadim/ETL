@@ -56,10 +56,10 @@ class PgToEsLoader:
         pg_film_data_generator = self.extract(data_type='filmwork')
         for postgres_film_works_data in pg_film_data_generator:
             data_for_load = self.transform_film(postgres_film_works_data)
-            self.load(data_type='filmwork', key='film_updated_at', data_for_load=data_for_load)
+            self.load(data_type='filmwork', key='filmwork_updated_at', data_for_load=data_for_load)
         for postgres_person_data in self.extract(data_type='person'):
             data_for_load = self.transform_person(postgres_person_data)
-            self.load(data_type='person', key='persons_updated_at', data_for_load=data_for_load)
+            self.load(data_type='person', key='person_updated_at', data_for_load=data_for_load)
 
     def extract(self, data_type):
         """
