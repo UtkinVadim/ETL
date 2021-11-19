@@ -6,7 +6,7 @@ from psycopg2.extras import DictCursor
 
 from postgres_to_es.postgres.state import JsonFileStorage, State
 from postgres_to_es.utils import load_env, generate_state_name
-from .queries import person_query, film_query
+from .queries import person_query, film_query, genre_query
 
 FILE_PATH = Path(__file__).resolve().parent
 
@@ -66,13 +66,17 @@ class PostgresLoader:
                 query_str = film_query
             elif data_type == 'person':
                 query_str = person_query
+            elif data_type == 'genre':
+                query_str = genre_query
+            else:
+                raise ValueError('Wrong data_type!')
             state_key_name = generate_state_name(data_type)
             while self.rows_count(table_name=data_type, updated_at=self.get_state_by(key=state_key_name,
                                                                                      start_date=self.start_date(
                                                                                          data_type))) > 0:
                 query = self.generate_query(query_str, self.get_state_by(key=state_key_name,
                                                                          start_date=self.start_date(data_type)),
-                                            self.limit)
+                                                                         limit=self.limit)
                 yield self.get_data_from_db(query)
 
     def generate_query(self, query: str, state: datetime, limit: int) -> str:

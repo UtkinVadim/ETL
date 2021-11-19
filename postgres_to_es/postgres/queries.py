@@ -5,13 +5,29 @@ person_query = """
         person_film.role, 
         ARRAY_AGG(DISTINCT jsonb_build_object('id', film.id, 'title', film.title, 'imdb_rating', film.rating))
     FROM content.person person 
-    LEFT JOIN content.person_filmwork as person_film on person.id = person_film.person_id 
+    LEFT JOIN content.person_filmwork AS person_film on person.id = person_film.person_id 
     LEFT JOIN content.filmwork AS film on person_film.filmwork_id = film.id 
     WHERE person.updated_at > '{}'
     GROUP BY person.id, person_film.role
     ORDER by person.updated_at
     LIMIT {};
     """
+
+genre_query = """
+    SELECT 
+        genre.id, 
+        genre.name, 
+        genre.description, 
+        ARRAY_AGG(DISTINCT jsonb_build_object('id', film.id, 'title', film.title, 'imdb_rating', film.rating))
+    FROM content.genre genre 
+    LEFT JOIN content.genre_filmwork as genre_film on genre.id = genre_film.genre_id 
+    LEFT JOIN content.filmwork AS film on genre_film.filmwork_id = film.id 
+    WHERE genre.updated_at > '{}'
+    GROUP BY genre.id
+    ORDER by genre.updated_at
+    LIMIT {};
+    """
+
 
 film_query = """       
     WITH
