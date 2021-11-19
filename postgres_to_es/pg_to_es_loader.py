@@ -155,7 +155,6 @@ class PgToEsLoader:
         :param data_type:
         :param key:
         :param data_for_load:
-        :param _id:
         :return:
         """
         helpers.bulk(self.elasticsearch_client, data_for_load)
