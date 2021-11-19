@@ -6,6 +6,7 @@ from psycopg2.extras import DictCursor
 
 from postgres_to_es.postgres.state import JsonFileStorage, State
 from postgres_to_es.utils import load_env
+from .queries import person_query, film_query
 
 FILE_PATH = Path(__file__).resolve().parent
 
@@ -42,7 +43,7 @@ class PostgresLoader:
             # FIXME это временная заглушка, переписать!
             if 'film' in key:
                 data_type = 'filmwork'
-            else:
+            elif 'person' in key:
                 data_type = 'person'
             return str(self.start_date(data_type))
         return state
@@ -67,84 +68,24 @@ class PostgresLoader:
             self.cursor: DictCursor = pg_connect.cursor()
             if data_type == 'filmwork':
                 while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
-                    yield self.get_data_from_db(self.make_film_query())
+                    query = self.generate_query(film_query, self.get_state_by(key='film_updated_at'), self.limit)
+                    yield self.get_data_from_db(query)
             elif data_type == 'person':
                 while self.rows_count(table_name='person', updated_at=self.get_state_by(key='persons_updated_at')) > 0:
-                    yield self.get_data_from_db(self.make_person_query())
+                    query = self.generate_query(person_query, self.get_state_by(key='persons_updated_at'), self.limit)
+                    yield self.get_data_from_db(query)
 
-    def make_film_query(self) -> str:
+    def generate_query(self, query: str, state: datetime, limit: int) -> str:
         """
         Формирует и возвращает строку sql запроса для выгрузки фильмов
 
+        :param query:
+        :param state:
+        :param limit:
         :return:
         """
-        query = """
-        WITH
 
-        cte_genres AS (
-        SELECT gfw.filmwork_id, string_agg(NAME, '|') AS genre
-        FROM "content".genre_filmwork gfw
-        JOIN "content".genre g ON g.id = gfw.genre_id
-        GROUP BY gfw.filmwork_id
-        ),
-
-        cte_persons AS (
-        SELECT pfw.filmwork_id,
-               pfw.role,
-               string_agg(p.full_name, '|') AS perons,
-               string_agg(concat(p.id, ',' ,p.full_name), '|') AS id_names
-        FROM "content".person_filmwork pfw
-        JOIN "content".person p ON p.id = pfw.person_id
-        GROUP BY pfw.filmwork_id, pfw.role
-        )
-
-        SELECT fw.id,
-               COALESCE(fw.rating, 0.0) AS imdb_rating,
-               cg.genre,
-               fw.title,
-               fw.description,
-               cpd.perons AS director,
-               cpa.perons AS actors_names,
-               cpw.perons AS writers_names,
-               cpa.id_names AS actors,
-               cpw.id_names AS writers
-
-        FROM "content".filmwork fw
-
-        LEFT OUTER JOIN cte_genres cg ON cg.filmwork_id = fw.id
-        LEFT OUTER JOIN cte_persons cpa ON cpa.filmwork_id = fw.id AND cpa.role = 'actor'
-        LEFT OUTER JOIN cte_persons cpd ON cpd.filmwork_id = fw.id AND cpd.role = 'director'
-        LEFT OUTER JOIN cte_persons cpw ON cpw.filmwork_id = fw.id AND cpw.role = 'writer'
-
-        WHERE updated_at > '%s'
-
-        ORDER BY fw.updated_at
-
-        LIMIT %s;
-        """ % (self.get_state_by(key='film_updated_at'), self.limit)
-        return query
-
-    def make_person_query(self) -> str:
-        """
-        Формирует и возвращает строку sql запроса для выгрузки персон
-
-        :return:
-        """
-        query = """
-        SELECT 
-            person.id, 
-            person.full_name as fullname, 
-            person_film.role, 
-            ARRAY_AGG(DISTINCT jsonb_build_object('id', film.id, 'title', film.title, 'imdb_rating', film.rating))
-        FROM content.person person 
-        LEFT JOIN content.person_filmwork as person_film on person.id = person_film.person_id 
-        LEFT JOIN content.filmwork AS film on person_film.filmwork_id = film.id 
-        WHERE person.updated_at > '%s'
-        GROUP BY person.id, person_film.role
-        ORDER by person.updated_at
-        LIMIT %s;
-        """ % (self.get_state_by(key='persons_updated_at'), self.limit)
-        return query
+        return query.format(state, limit)
 
     def get_data_from_db(self, query) -> list:
         """
