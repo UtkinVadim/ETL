@@ -37,11 +37,10 @@ class PostgresLoader:
         :param key:
         :return:
         """
-        try:
-            self.state.get_state(key=key)
-        except FileNotFoundError:
-            self.state.set_state(key=key, value=str(self.start_date()))
-        return self.state.get_state(key=key)
+        state = self.state.get_state(key=key)
+        if state is None:
+            return str(self.start_date())
+        return state
 
     def rows_count(self, table_name: str, updated_at: str) -> int:
         """
@@ -64,8 +63,8 @@ class PostgresLoader:
             if data_type == 'filmwork':
                 while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
                     yield self.get_data_from_db(self.make_film_query())
-            elif data_type == 'persons':
-                while self.rows_count(table_name='persons', updated_at=self.get_state_by(key='persons_updated_at')) > 0:
+            elif data_type == 'person':
+                while self.rows_count(table_name='person', updated_at=self.get_state_by(key='persons_updated_at')) > 0:
                     yield self.get_data_from_db(self.make_person_query())
 
     def make_film_query(self) -> str:
@@ -129,7 +128,7 @@ class PostgresLoader:
         query = """
         SELECT 
             person.id, 
-            person.full_name, 
+            person.full_name as fullname, 
             person_film.role, 
             ARRAY_AGG(DISTINCT jsonb_build_object('id', film.id, 'title', film.title, 'imdb_rating', film.rating))
         FROM content.person person 
@@ -137,7 +136,7 @@ class PostgresLoader:
         LEFT JOIN content.filmwork AS film on person_film.filmwork_id = film.id 
         WHERE person.updated_at > '%s'
         GROUP BY person.id, person_film.role
-        ORDER by person.updated_at;
+        ORDER by person.updated_at
         LIMIT %s;
         """ % (self.get_state_by(key='persons_updated_at'), self.limit)
         return query
@@ -151,19 +150,19 @@ class PostgresLoader:
         self.cursor.execute(query)
         return self.cursor.fetchall()
 
-    def update_state(self, data_type: str, key: str,  _id: str):
+    def update_state(self, data_type: str, key: str, value: str):
         """
         Обновляет состояние, данные о состоянии берёт из базы.
 
         :param data_type:
         :param key:
-        :param _id:
+        :param value:
         :return:
         """
         self.cursor.execute(
-            """SELECT updated_at
-               FROM "content".'%s'
-               WHERE id = '%s'""" % data_type, _id
+            f"""SELECT updated_at
+               FROM "content".{data_type}
+               WHERE id = '{value}'"""
         )
         updated_at_date = self.cursor.fetchone()[0]
         self.state.set_state(key=key, value=str(updated_at_date))
