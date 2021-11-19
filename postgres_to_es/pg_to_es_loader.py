@@ -43,7 +43,8 @@ class PersonWithFilms(BaseModel):
 class PgToEsLoader:
     def __init__(self, postgres_load_limit: int = 250):
         self.elasticsearch_client = Elasticsearch(hosts=os.environ.get("ES_HOST"))
-        self.index = "movies"
+        self.movies_index = "movies"
+        self.person_index = "person"
 
         self.pg_loader = PostgresLoader(limit=postgres_load_limit)
 
@@ -52,16 +53,26 @@ class PgToEsLoader:
 
     @backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10)
     def start_process(self) -> None:
-        pg_data_generator = self.extract()
-        for postgres_film_works_data in pg_data_generator:
-            data_for_load = self.transform(postgres_film_works_data)
+        pg_film_data_generator = self.extract(data_type='filmwork')
+        for postgres_film_works_data in pg_film_data_generator:
+            data_for_load = self.transform_film(postgres_film_works_data)
+            self.load(data_for_load)
+        pg_person_data_generator = self.extract(data_type='persons')
+        for postgres_person_data in pg_person_data_generator:
+            data_for_load = self.transform_person(postgres_film_works_data)
             self.load(data_for_load)
 
-    def extract(self):
-        pg_data_generator = self.pg_loader.extract_data()
+    def extract(self, data_type):
+        """
+        Возвращает генератор выгружающий данные из postgres данных указанного типа (фильмы, персоны...)
+
+        :param data_type:
+        :return:
+        """
+        pg_data_generator = self.pg_loader.extract_data(data_type)
         return pg_data_generator
 
-    def transform(self, postgres_film_works_data: List[DictRow]) -> List[dict]:
+    def transform_film(self, postgres_film_works_data: List[DictRow]) -> List[dict]:
         transformed_film_works_data = []
 
         for pg_film_work_data in postgres_film_works_data:
@@ -77,11 +88,25 @@ class PgToEsLoader:
 
             validated_film_work_data = self.validate_film_work_data()
 
-            data_for_load = self.transform_data(film_work=validated_film_work_data)
+            data_for_load = self.transform_data(index=self.movie_index, data=validated_film_work_data)
 
             transformed_film_works_data.append(data_for_load)
 
         return transformed_film_works_data
+
+    def transform_person(self, postgres_person_data: List[DictRow]) -> List[dict]:
+        """
+        Преобразует список словарей полученных от postgres данных о персонах в список словарей валидированных персон.
+
+        :param postgres_person_data:
+        :return:
+        """
+        transformed_person_date = []
+        for raw_person in postgres_person_data:
+            validated_person = PersonWithFilms(**raw_person)
+            tranformed_person = self.transform_data(index=self.person_index, data=validated_person)
+            transformed_person_data.append(tranformed_person)
+        return transformed_person_data
 
     def validate_film_work_data(self) -> FilmWork:
         try:
@@ -119,8 +144,8 @@ class PgToEsLoader:
 
         return {f"{persons_role}_names": person_names, f"{persons_role}": persons_data}
 
-    def transform_data(self, film_work: FilmWork) -> dict:
-        data_for_load = {"_index": self.index, "_id": film_work.id, **film_work.dict()}
+    def transform_data(self, index: str, data: BaseModel) -> dict:
+        data_for_load = {"_index": self.index, "_id": data.id, **data.dict()}
         return data_for_load
 
     @backoff(start_sleep_time=1, factor=2, border_sleep_time=10)
