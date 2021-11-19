@@ -40,11 +40,19 @@ class PersonWithFilms(BaseModel):
     film_ids: Optional[List[Film]]
 
 
+class GenreWithFilms(BaseModel):
+    id: Union[str, UUID]
+    name: str
+    description: Optional[str]
+    film_ids: Optional[List[Film]]
+
+
 class PgToEsLoader:
     def __init__(self, postgres_load_limit: int = 250):
         self.elasticsearch_client = Elasticsearch(hosts=os.environ.get("ES_HOST"))
         self.movies_index = "movies"
         self.person_index = "person"
+        self.genre_index = "genre"
 
         self.pg_loader = PostgresLoader(limit=postgres_load_limit)
 
@@ -92,6 +100,20 @@ class PgToEsLoader:
             transformed_film_works_data.append(data_for_load)
 
         return transformed_film_works_data
+
+    def transform_genre(self, postgres_genre_data: List[DictRow]) -> List[dict]:
+        """
+        Преобразует список словарей полученных от postgres данных о жанрах в список словарей валидированных жанров.
+
+        :param postgres_person_data:
+        :return:
+        """
+        transformed_genre_data = []
+        for raw_genre in postgres_genre_data:
+            validated_genre = GenreWithFilms(**raw_genre)
+            tranformed_genre = self.transform_data(index=self.genre_index, data=validated_genre)
+            transformed_genre_data.append(tranformed_person)
+        return transformed_genre_data
 
     def transform_person(self, postgres_person_data: List[DictRow]) -> List[dict]:
         """
