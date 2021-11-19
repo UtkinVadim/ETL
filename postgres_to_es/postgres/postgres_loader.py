@@ -39,7 +39,12 @@ class PostgresLoader:
         """
         state = self.state.get_state(key=key)
         if state is None:
-            return str(self.start_date())
+            # FIXME это временная заглушка, переписать!
+            if 'film' in key:
+                data_type = 'filmwork'
+            else:
+                data_type = 'person'
+            return str(self.start_date(data_type))
         return state
 
     def rows_count(self, table_name: str, updated_at: str) -> int:
@@ -167,7 +172,7 @@ class PostgresLoader:
         updated_at_date = self.cursor.fetchone()[0]
         self.state.set_state(key=key, value=str(updated_at_date))
 
-    def start_date(self):
-        self.cursor.execute("""SELECT fw.updated_at FROM content.filmwork as fw ORDER BY fw.updated_at limit 1""")
+    def start_date(self, data_type: str) -> datetime:
+        self.cursor.execute(f"""SELECT fw.updated_at FROM content.{data_type} as fw ORDER BY fw.updated_at limit 1""")
         oldest_row = self.cursor.fetchone()[0] - datetime.timedelta(microseconds=1)
         return oldest_row - datetime.timedelta(microseconds=1)
