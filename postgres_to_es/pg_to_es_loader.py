@@ -88,7 +88,7 @@ class PgToEsLoader:
 
             validated_film_work_data = self.validate_film_work_data()
 
-            data_for_load = self.transform_data(index=self.movie_index, data=validated_film_work_data)
+            data_for_load = self.transform_data(index=self.movies_index, data=validated_film_work_data)
 
             transformed_film_works_data.append(data_for_load)
 
@@ -145,7 +145,7 @@ class PgToEsLoader:
         return {f"{persons_role}_names": person_names, f"{persons_role}": persons_data}
 
     def transform_data(self, index: str, data: BaseModel) -> dict:
-        data_for_load = {"_index": self.index, "_id": data.id, **data.dict()}
+        data_for_load = {"_index": index, "_id": data.id, **data.dict()}
         return data_for_load
 
     @backoff(start_sleep_time=1, factor=2, border_sleep_time=10)
