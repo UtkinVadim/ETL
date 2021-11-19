@@ -56,11 +56,10 @@ class PgToEsLoader:
         pg_film_data_generator = self.extract(data_type='filmwork')
         for postgres_film_works_data in pg_film_data_generator:
             data_for_load = self.transform_film(postgres_film_works_data)
-            self.load(data_for_load)
-        pg_person_data_generator = self.extract(data_type='persons')
-        for postgres_person_data in pg_person_data_generator:
-            data_for_load = self.transform_person(postgres_film_works_data)
-            self.load(data_for_load)
+            self.load(data_type='filmwork', key='film_updated_at', data_for_load=data_for_load)
+        for postgres_person_data in self.extract(data_type='person'):
+            data_for_load = self.transform_person(postgres_person_data)
+            self.load(data_type='person', key='persons_updated_at', data_for_load=data_for_load)
 
     def extract(self, data_type):
         """
@@ -101,7 +100,7 @@ class PgToEsLoader:
         :param postgres_person_data:
         :return:
         """
-        transformed_person_date = []
+        transformed_person_data = []
         for raw_person in postgres_person_data:
             validated_person = PersonWithFilms(**raw_person)
             tranformed_person = self.transform_data(index=self.person_index, data=validated_person)
@@ -149,6 +148,15 @@ class PgToEsLoader:
         return data_for_load
 
     @backoff(start_sleep_time=1, factor=2, border_sleep_time=10)
-    def load(self, film_works_for_load: list) -> None:
-        helpers.bulk(self.elasticsearch_client, film_works_for_load)
-        self.pg_loader.update_state(film_work_id=film_works_for_load[-1].get("_id"))
+    def load(self, data_type: str, key: str, data_for_load: list) -> None:
+        """
+        Загружает данные в эластик и устанавливает состояние
+
+        :param data_type:
+        :param key:
+        :param data_for_load:
+        :param _id:
+        :return:
+        """
+        helpers.bulk(self.elasticsearch_client, data_for_load)
+        self.pg_loader.update_state(data_type=data_type, key=key, value=data_for_load[-1].get("_id"))
