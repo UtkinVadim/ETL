@@ -53,7 +53,7 @@ class PostgresLoader:
         """
         self.cursor.execute(
             f"""SELECT count(*)
-               FROM "content".'{table_name}'
+               FROM "content".{table_name}
                WHERE updated_at > '{updated_at}'"""
         )
         return self.cursor.fetchone()[0]
