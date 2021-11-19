@@ -151,14 +151,22 @@ class PostgresLoader:
         self.cursor.execute(query)
         return self.cursor.fetchall()
 
-    def update_state(self, film_work_id: str):
+    def update_state(self, data_type: str, key: str,  _id: str):
+        """
+        Обновляет состояние, данные о состоянии берёт из базы.
+
+        :param data_type:
+        :param key:
+        :param _id:
+        :return:
+        """
         self.cursor.execute(
             """SELECT updated_at
-               FROM "content".filmwork
-               WHERE id = '%s'""" % film_work_id
+               FROM "content".'%s'
+               WHERE id = '%s'""" % data_type, _id
         )
         updated_at_date = self.cursor.fetchone()[0]
-        self.state.set_state(key="updated_at", value=str(updated_at_date))
+        self.state.set_state(key=key, value=str(updated_at_date))
 
     def start_date(self):
         self.cursor.execute("""SELECT fw.updated_at FROM content.filmwork as fw ORDER BY fw.updated_at limit 1""")
