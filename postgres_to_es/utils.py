@@ -12,6 +12,14 @@ def load_env():
 def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
+def generate_state_name(table_name: str) -> str:
+    """
+    Конструирует и возвращает название переменной для сохранения состояния
+
+    :param table_name:
+    :return:
+    """
+    return '_'.join([table_name, 'updated_at'])
 
 def backoff(
     start_sleep_time: float = 0.1, factor: int = 2, border_sleep_time: int = 10
