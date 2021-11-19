@@ -58,13 +58,15 @@ class PostgresLoader:
         )
         return self.cursor.fetchone()[0]
 
-    def extract_data(self) -> list:
+    def extract_data(self, data_type: str) -> list:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
-            while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
-                yield self.get_data_from_db(self.make_film_query())
-            while self.rows_count(table_name='persons', updated_at=self.get_state_by(key='person_updated_at')) > 0:
-                yield self.get_data_from_db(self.make_person_query())
+            if data_type == 'filmwork':
+                while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
+                    yield self.get_data_from_db(self.make_film_query())
+            elif data_type == 'persons':
+                while self.rows_count(table_name='persons', updated_at=self.get_state_by(key='persons_updated_at')) > 0:
+                    yield self.get_data_from_db(self.make_person_query())
 
     def make_film_query(self) -> str:
         """
@@ -137,7 +139,7 @@ class PostgresLoader:
         GROUP BY person.id, person_film.role
         ORDER by person.updated_at;
         LIMIT %s;
-        """ % (self.get_state_by(key='person_updated_at'), self.limit)
+        """ % (self.get_state_by(key='persons_updated_at'), self.limit)
         return query
 
     def get_data_from_db(self, query) -> list:
