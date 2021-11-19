@@ -5,7 +5,7 @@ from psycopg2 import connect
 from psycopg2.extras import DictCursor
 
 from postgres_to_es.postgres.state import JsonFileStorage, State
-from postgres_to_es.utils import load_env
+from postgres_to_es.utils import load_env, generate_state_name
 from .queries import person_query, film_query
 
 FILE_PATH = Path(__file__).resolve().parent
@@ -67,13 +67,13 @@ class PostgresLoader:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
             if data_type == 'filmwork':
-                while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='filmwork_updated_at')) > 0:
-                    query = self.generate_query(film_query, self.get_state_by(key='filmwork_updated_at'), self.limit)
-                    yield self.get_data_from_db(query)
+                query_str = film_query
             elif data_type == 'person':
-                while self.rows_count(table_name='person', updated_at=self.get_state_by(key='person_updated_at')) > 0:
-                    query = self.generate_query(person_query, self.get_state_by(key='person_updated_at'), self.limit)
-                    yield self.get_data_from_db(query)
+                query_str = person_query
+            state_key_name = generate_state_name(data_type)
+            while self.rows_count(table_name=data_type, updated_at=self.get_state_by(key=state_key_name)) > 0:
+                query = self.generate_query(query_str, self.get_state_by(key=state_key_name), self.limit)
+                yield self.get_data_from_db(query)
 
     def generate_query(self, query: str, state: datetime, limit: int) -> str:
         """
