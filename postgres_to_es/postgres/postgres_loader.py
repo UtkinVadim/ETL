@@ -61,11 +61,10 @@ class PostgresLoader:
     def extract_data(self) -> list:
         with connect(**PostgresLoader.DSL, cursor_factory=DictCursor) as pg_connect:
             self.cursor: DictCursor = pg_connect.cursor()
-            while self.rows_count(table_name='filmwork', updated_at=self.get_state_by('film_updated_at')) > 0:
-                yield self.get_data_from_db(make_film_query())
-            while self.rows_count(table_name='persons', updated_at=self.get_state_by('film_updated_at')) > 0:
-                raise NotImplemented
-                yield self.get_film_works()
+            while self.rows_count(table_name='filmwork', updated_at=self.get_state_by(key='film_updated_at')) > 0:
+                yield self.get_data_from_db(self.make_film_query())
+            while self.rows_count(table_name='persons', updated_at=self.get_state_by(key='person_updated_at')) > 0:
+                yield self.get_data_from_db(self.make_person_query())
 
     def make_film_query(self) -> str:
         """
@@ -116,9 +115,8 @@ class PostgresLoader:
         ORDER BY fw.updated_at
 
         LIMIT %s;
-        """ % (self.get_state_by('film_updated_at'), self.limit)
+        """ % (self.get_state_by(key='film_updated_at'), self.limit)
         return query
-
 
     def make_person_query(self) -> str:
         """
@@ -126,7 +124,20 @@ class PostgresLoader:
 
         :return:
         """
-        query = """ """
+        query = """
+        SELECT 
+            person.id, 
+            person.full_name, 
+            person_film.role, 
+            ARRAY_AGG(DISTINCT jsonb_build_object('id', film.id, 'title', film.title, 'imdb_rating', film.rating))
+        FROM content.person person 
+        LEFT JOIN content.person_filmwork as person_film on person.id = person_film.person_id 
+        LEFT JOIN content.filmwork AS film on person_film.filmwork_id = film.id 
+        WHERE person.updated_at > '%s'
+        GROUP BY person.id, person_film.role
+        ORDER by person.updated_at;
+        LIMIT %s;
+        """ % (self.get_state_by(key='person_updated_at'), self.limit)
         return query
 
     def get_data_from_db(self, query) -> list:
