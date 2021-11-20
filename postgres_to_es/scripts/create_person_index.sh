@@ -1,6 +1,6 @@
 #!/bin/sh
 
-curl -XPUT http://127.0.0.1:9200/person -H 'Content-Type: application/json' -d'
+curl -XPUT http://"${ES_HOST}":"${ES_PORT}"/person -H 'Content-Type: application/json' -d'
 {
   "settings": {
     "refresh_interval": "1s",

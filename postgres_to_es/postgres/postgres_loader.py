@@ -4,8 +4,8 @@ from pathlib import Path
 from psycopg2 import connect
 from psycopg2.extras import DictCursor
 
-from postgres_to_es.postgres.state import JsonFileStorage, State
-from postgres_to_es.utils import load_env, generate_state_name
+from postgres.state import JsonFileStorage, State
+from etl.utils import load_env, generate_state_name
 from .queries import person_query, film_query, genre_query
 
 FILE_PATH = Path(__file__).resolve().parent
@@ -15,11 +15,11 @@ load_env()
 
 class PostgresLoader:
     DSL = {
-        "dbname": os.environ.get("DB_NAME"),
-        "user": os.environ.get("DB_USER"),
-        "password": os.environ.get("DB_PASSWORD"),
-        "host": os.environ.get("DB_HOST"),
-        "port": os.environ.get("DB_PORT"),
+        "dbname": os.environ.get("POSTGRES_DB"),
+        "user": os.environ.get("POSTGRES_USER"),
+        "password": os.environ.get("POSTGRES_PASSWORD"),
+        "host": os.environ.get("POSTGRES_HOST"),
+        "port": os.environ.get("POSTGRES_PORT"),
         "options": "-c search_path=content",
     }
 
