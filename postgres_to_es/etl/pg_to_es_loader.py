@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from typing import List, Union, Optional
 from uuid import UUID
 
-from postgres_to_es.postgres.postgres_loader import PostgresLoader
-from postgres_to_es.utils import backoff, get_logger
+from postgres.postgres_loader import PostgresLoader
+from etl.utils import backoff, get_module_logger
 
 
 class Persons(BaseModel):
@@ -49,7 +49,7 @@ class GenreWithFilms(BaseModel):
 
 class PgToEsLoader:
     def __init__(self, postgres_load_limit: int = 250):
-        self.elasticsearch_client = Elasticsearch(hosts=os.environ.get("ES_HOST"))
+        self.elasticsearch_client = Elasticsearch(hosts=f"{os.environ.get('ES_HOST')}:{os.environ.get('ES_PORT')}")
         self.movies_index = "movies"
         self.person_index = "person"
         self.genre_index = "genre"
@@ -135,7 +135,7 @@ class PgToEsLoader:
         try:
             return FilmWork(**self.film_work_data_for_transform)
         except Exception as err:
-            get_logger(__name__).warning(f"Film work validation error: {err}")
+            get_module_logger(__name__).warning(f"Film work validation error: {err}")
 
     def get_genre(self) -> list:
         return self.film_work_data_for_transform["genre"].split("|")
@@ -181,5 +181,6 @@ class PgToEsLoader:
         :param data_for_load:
         :return:
         """
-        helpers.bulk(self.elasticsearch_client, data_for_load)
+        result = helpers.bulk(self.elasticsearch_client, data_for_load)
+        get_module_logger(__name__).info(f"ETL result: {result}")
         self.pg_loader.update_state(data_type=data_type, key=key, value=data_for_load[-1].get("_id"))
