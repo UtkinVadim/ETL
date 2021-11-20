@@ -12,6 +12,7 @@ import:
 create_index_schema:
 	sh postgres_to_es/scripts/create_movies_index.sh
 	sh postgres_to_es/scripts/create_person_index.sh
+	sh postgres_to_es/scripts/create_genre_index.sh
 
 run_etl_process:
 	python -m postgres_to_es.scripts.run_etl_process
