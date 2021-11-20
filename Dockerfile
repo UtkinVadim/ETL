@@ -1,6 +1,8 @@
 FROM python:3.9.7-alpine
 WORKDIR /app
 
+ENV PYTHONDONTWRITEBYTECODE 1
+
 COPY postgres_to_es .
 
 RUN apk update && pip install -U pip
