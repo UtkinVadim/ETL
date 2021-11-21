@@ -1,5 +1,6 @@
 import abc
 import json
+from pathlib import Path
 from typing import Any, Optional
 
 
@@ -17,7 +18,10 @@ class BaseStorage:
 
 class JsonFileStorage(BaseStorage):
     def __init__(self, file_path: Optional[str] = None):
-        self.file_path = file_path
+        self.file_path = Path(file_path)
+        if not self.file_path.exists():
+            with open(self.file_path, 'w') as file:
+                file.write('{}')
 
     def save_state(self, state: dict) -> None:
         with open(self.file_path, "w") as file:
@@ -34,7 +38,8 @@ class State:
         self.storage = storage
 
     def set_state(self, key: str, value: Any) -> None:
-        state = {key: value}
+        state = self.storage.retrieve_state()
+        state.update({key: value})
         self.storage.save_state(state)
 
     def get_state(self, key: str) -> Any:

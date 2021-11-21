@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  etl:
+    build:
+      context: .
+    container_name: etl
+    restart: always
+    user: "etl_user"
+    volumes:
+      - ./postgres_to_es:/app
+    env_file:
+      - .env
+    environment:
+      - ES_HOST=elastic
+    depends_on:
+      - elastic
+    networks:
+      - movies-network
+
+  elastic:
+    image: elasticsearch:7.14.2
+    container_name: elastic
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - discovery.type=single-node
+    ports:
+      - ${ES_HOST}:${ES_PORT}:9200
+    networks:
+      - movies-network
+
+
+networks:
+  movies-network:
+    name: movies-network
+
+volumes:
+  db_volume:
