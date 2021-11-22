@@ -1,7 +1,8 @@
 import logging
 import time
-from dotenv import find_dotenv, load_dotenv
 from functools import wraps
+
+from dotenv import find_dotenv, load_dotenv
 
 
 def load_env():
@@ -22,18 +23,8 @@ def get_module_logger(mod_name):
     return logger
 
 
-def generate_state_name(table_name: str) -> str:
-    """
-    Конструирует и возвращает название переменной для сохранения состояния
-
-    :param table_name:
-    :return:
-    """
-    return '_'.join([table_name, 'updated_at'])
-
-
 def backoff(
-        start_sleep_time: float = 0.1, factor: int = 2, border_sleep_time: int = 10
+    start_sleep_time: float = 0.1, factor: int = 2, border_sleep_time: int = 10
 ):
     def func_wrapper(func):
         @wraps(func)
