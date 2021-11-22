@@ -6,7 +6,7 @@ until nc -z "$ES_HOST" "$ES_PORT"; do
 done
 
 sh scripts/create_genre_index.sh
-sh scripts/create_movies_index.sh
+sh scripts/create_filmwork_index.sh
 sh scripts/create_person_index.sh
 
 exec "$@"

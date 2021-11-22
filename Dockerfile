@@ -6,8 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE 1
 COPY postgres_to_es .
 
 RUN apk update && pip install -U pip
-RUN apk add --virtual .build-deps gcc python3-dev musl-dev postgresql-dev linux-headers libffi-dev \
-     jpeg-dev zlib-dev curl bash
+RUN apk add --virtual .build-deps gcc \
+     python3-dev musl-dev postgresql-dev \
+     linux-headers libffi-dev jpeg-dev zlib-dev curl bash
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

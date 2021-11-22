@@ -3,3 +3,6 @@
 venv
 
 state.json
+
+.DS_Store
+__pycache__
