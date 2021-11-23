@@ -26,8 +26,6 @@ services:
       - .env
     environment:
       - discovery.type=single-node
-    ports:
-      - ${ES_HOST}:${ES_PORT}:9200
     networks:
       - movies-network
 
