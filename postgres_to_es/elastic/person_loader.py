@@ -33,6 +33,3 @@ class PersonLoader(BaseElasticsearchLoader):
     def transform_dict_row_to_dict(self, dict_row: DictRow) -> dict:
         return {**dict_row}
 
-    def assign_id_to_data(self, model) -> dict:
-        data_for_load = {"_id": model.id, **model.dict()}
-        return data_for_load
