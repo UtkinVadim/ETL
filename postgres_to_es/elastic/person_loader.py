@@ -13,13 +13,13 @@ logger = get_module_logger(__name__)
 class Film(BaseModel):
     id: str
     title: str
-    imdb_rating: float
+    imdb_rating: Optional[float]
+    role: str
 
 
 class Person(BaseModel):
     id: str
     fullname: str
-    role: str
     film_ids: Optional[List[Film]]
 
 
@@ -33,7 +33,3 @@ class PersonLoader(BaseElasticsearchLoader):
     def transform_dict_row_to_dict(self, dict_row: DictRow) -> dict:
         return {**dict_row}
 
-    def assign_id_to_data(self, model) -> dict:
-        _id = f"{model.id}_{model.role}"
-        data_for_load = {"_id": _id, **model.dict()}
-        return data_for_load

@@ -52,9 +52,6 @@ curl -XPUT http://"${ES_HOST}":"${ES_PORT}"/person -H 'Content-Type: application
         "type": "text",
         "analyzer": "ru_en"
       },
-      "role": {
-        "type": "keyword"
-      },
       "film_ids": {
         "type": "nested",
         "dynamic": "strict",
@@ -65,6 +62,9 @@ curl -XPUT http://"${ES_HOST}":"${ES_PORT}"/person -H 'Content-Type: application
           "title": {
             "type": "text",
             "analyzer": "ru_en"
+          },
+          "role": {
+            "type": "keyword"
           },
           "imdb_rating": {
             "type": "float"
