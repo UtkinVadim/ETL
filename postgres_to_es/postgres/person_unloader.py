@@ -33,15 +33,13 @@ class PersonUnloader(BasePostgresUnloader):
         return query
 
     def update_state(self, obj_id: str):
-        uuid = obj_id.split("_")[0]
-        role = obj_id.split("_")[1]
         self.cursor.execute(
             """
             SELECT updated_at
             FROM "content".person AS person
             LEFT JOIN content.person_filmwork AS person_film ON person.id = person_film.person_id
-            WHERE person.id = '%s' AND person_film.role = '%s'
-            """ % (uuid, role)
+            WHERE person.id = '%s'
+            """ % obj_id
         )
         updated_at_date = self.cursor.fetchone()[0]
         self.state.set_state(key=self.state_key, value=str(updated_at_date))
