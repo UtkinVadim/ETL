@@ -20,5 +20,5 @@ create_index_schema:
 run_etl_process_local:
 	cd postgres_to_es && python -m scripts.run_etl_process
 
-run:
+run_etl:
 	docker compose up --build -d
