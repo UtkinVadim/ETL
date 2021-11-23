@@ -11,13 +11,13 @@ RUN apk add --virtual .build-deps gcc \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY postgres_to_es .
+
 RUN addgroup -S etl_user && \
     adduser -S -H -G etl_user etl_user && \
     chown -R etl_user:etl_user /app
 
 USER etl_user
-
-COPY postgres_to_es .
 
 ENTRYPOINT ["bash", "./scripts/wait_for_elastic.sh"]
 
