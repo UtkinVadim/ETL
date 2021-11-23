@@ -18,4 +18,4 @@ run_etl_process_local:
 	cd postgres_to_es && python -m scripts.run_etl_process
 
 run:
-	docker compose up --build
+	docker compose up --build -d
