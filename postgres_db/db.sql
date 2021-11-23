@@ -8,6 +8,22 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 
 --
+-- Drop databases (except postgres and template1)
+--
+
+DROP DATABASE movies;
+
+
+
+
+--
+-- Drop roles
+--
+
+DROP ROLE postgres;
+
+
+--
 -- Roles
 --
 
@@ -27,8 +43,6 @@ ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION
 -- Database "template1" dump
 --
 
-\connect template1
-
 --
 -- PostgreSQL database dump
 --
@@ -46,6 +60,65 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+UPDATE pg_catalog.pg_database SET datistemplate = false WHERE datname = 'template1';
+DROP DATABASE template1;
+--
+-- Name: template1; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.utf8';
+
+
+ALTER DATABASE template1 OWNER TO postgres;
+
+\connect template1
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: DATABASE template1; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON DATABASE template1 IS 'default template for new databases';
+
+
+--
+-- Name: template1; Type: DATABASE PROPERTIES; Schema: -; Owner: postgres
+--
+
+ALTER DATABASE template1 IS_TEMPLATE = true;
+
+
+\connect template1
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: DATABASE template1; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE CONNECT,TEMPORARY ON DATABASE template1 FROM PUBLIC;
+GRANT CONNECT ON DATABASE template1 TO PUBLIC;
+
 
 --
 -- PostgreSQL database dump complete
@@ -4728,6 +4801,7 @@ d85a647a-a09a-4c2c-b7e7-eaa507e170af	José Dumont	\N	2021-06-16 20:14:09.35685+0
 97607723-846b-42e1-bf5e-72f42b48c37f	Fernanda Montenegro	\N	2021-06-16 20:14:09.357055+00	2021-06-16 20:14:09.357073+00
 6e1a0547-963e-4d47-bf84-aea05783f954	Takao Shimizu	\N	2021-06-16 20:14:09.357105+00	2021-06-16 20:14:09.357122+00
 bf510347-d5ea-4396-b3d0-727302e11d72	Jayaram	\N	2021-06-16 20:14:09.405808+00	2021-06-16 20:14:09.405824+00
+00d7c2cb-31ae-4872-b8d3-3a1016e18721	Mukesh	\N	2021-06-16 20:14:09.405854+00	2021-06-16 20:14:09.405869+00
 6425b2cd-8ca5-4550-b4e4-1eaac8ef9ca6	Mitsuhiro Takano	\N	2021-06-16 20:14:09.357153+00	2021-06-16 20:14:09.357169+00
 cf73b7ed-fbe6-400c-ac1f-5dea91a230fc	Mike West	\N	2021-06-16 20:14:09.3572+00	2021-06-16 20:14:09.357217+00
 fb4f4d81-0b95-49a3-94c0-7ea0a5b36c6e	Rick May	\N	2021-06-16 20:14:09.357246+00	2021-06-16 20:14:09.357263+00
@@ -5783,7 +5857,6 @@ b8dc28f6-f15a-46e8-aba8-d6b63357192f	Siena Agudong	\N	2021-06-16 20:14:09.40563+
 35ff5fd5-89b2-41f3-8054-0bb8bca4733d	Gyu-pil Go	\N	2021-06-16 20:14:09.405674+00	2021-06-16 20:14:09.40569+00
 24f56f34-2fab-44e9-82d9-6bfe83d89085	Deepu Anthikkad	\N	2021-06-16 20:14:09.405719+00	2021-06-16 20:14:09.405735+00
 65cab9eb-4110-437e-a5bf-ee69eb078a92	Deepu Anthkkad	\N	2021-06-16 20:14:09.405764+00	2021-06-16 20:14:09.405779+00
-00d7c2cb-31ae-4872-b8d3-3a1016e18721	Mukesh	\N	2021-06-16 20:14:09.405854+00	2021-06-16 20:14:09.405869+00
 e9b2af65-45b3-4499-9cb8-2df194f24b9c	Rachana Narayanankutty	\N	2021-06-16 20:14:09.405898+00	2021-06-16 20:14:09.405923+00
 a15c8321-176a-4aad-811a-8f12a106ef10	Pooja Ramachandran	\N	2021-06-16 20:14:09.405958+00	2021-06-16 20:14:09.405974+00
 362cbb5f-a67d-42a8-a077-26e96bcf23ef	Casey Pugh	\N	2021-06-16 20:14:09.406004+00	2021-06-16 20:14:09.40602+00
@@ -13389,6 +13462,7 @@ c789099a-d49f-4895-b250-bc8064094073	17bc0cc6-6d9d-4a7c-81b3-4556e1d3ac04	7f09d6
 9181719f-ea3f-4240-b239-095beb216a7a	32064806-8196-4037-b758-dd5b5d274b59	35ded0cd-785e-4f61-80f1-08538b34f660	actor	2021-06-16 20:14:09.934635+00
 f67bbd77-67a4-4872-a343-40b97497c006	2dd036a4-f5d0-4e81-8073-a36da2a684b7	0f5df313-bfe5-450b-942c-3844214b7c41	actor	2021-06-16 20:14:09.934673+00
 73d0f092-06ed-48d5-bb02-8da8933fbfe2	83af8d01-580a-462e-8c96-2171385935cc	97568425-6959-4b86-b81d-d3198eabfdac	writer	2021-06-16 20:14:09.93471+00
+bfe61bd9-5dfd-41ca-80ae-8eca998bc29d	bfe61bd9-5dfd-41ca-80ae-8eca998bc29d	0031feab-8f53-412a-8f53-47098a60ac73	actor	\N
 \.
 
 
@@ -13807,7 +13881,7 @@ CREATE UNIQUE INDEX film_work_genre ON content.genre_filmwork USING btree (filmw
 -- Name: film_work_person; Type: INDEX; Schema: content; Owner: postgres
 --
 
-CREATE UNIQUE INDEX film_work_person ON content.person_filmwork USING btree (filmwork_id, person_id);
+CREATE UNIQUE INDEX film_work_person ON content.person_filmwork USING btree (filmwork_id, person_id, role);
 
 
 --
@@ -13981,8 +14055,6 @@ ALTER TABLE ONLY public.django_admin_log
 -- Database "postgres" dump
 --
 
-\connect postgres
-
 --
 -- PostgreSQL database dump
 --
@@ -14000,6 +14072,36 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+DROP DATABASE postgres;
+--
+-- Name: postgres; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE postgres WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.utf8';
+
+
+ALTER DATABASE postgres OWNER TO postgres;
+
+\connect postgres
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: DATABASE postgres; Type: COMMENT; Schema: -; Owner: postgres
+--
+
+COMMENT ON DATABASE postgres IS 'default administrative connection database';
+
 
 --
 -- PostgreSQL database dump complete
