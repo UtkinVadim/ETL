@@ -13,7 +13,7 @@ logger = get_module_logger(__name__)
 class Film(BaseModel):
     id: str
     title: str
-    imdb_rating: float
+    imdb_rating: Optional[float]
     role: str
 
 
